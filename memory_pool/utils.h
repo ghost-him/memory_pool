@@ -13,7 +13,7 @@ namespace memory_pool {
 
     class memory_span {
     public:
-        memory_span(std::byte* data, const std::size_t size) :m_data(data), m_size(size) { assert(data != nullptr);}
+        memory_span(std::byte* data, const std::size_t size) :m_data(data), m_size(size) {}
         memory_span(const memory_span& other) = default;
         memory_span& operator=(const memory_span& other) = default;
         std::byte* data() const { return m_data; }

@@ -1,3 +1,4 @@
+// 该内容由 gemini 2.5 pro preview 03-25 生成，https://aistudio.google.com/prompts/new_chat
 #include "memory_pool.h" // Include the top-level header
 #include "utils.h"      // Include utils for constants and alignment functions
 

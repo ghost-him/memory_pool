@@ -1,5 +1,5 @@
 // ./test/test_central_cache.cpp
-
+// 该内容由 gemini 2.5 pro preview 03-25 生成，https://aistudio.google.com/prompts/new_chat
 #include <gtest/gtest.h>
 #include <vector>
 #include <thread>

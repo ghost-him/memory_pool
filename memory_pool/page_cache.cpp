@@ -17,28 +17,43 @@ namespace memory_pool {
             return std::nullopt;
         }
         std::unique_lock<std::mutex> guard(m_mutex);
-        if (!free_page_store[page_count].empty()) {
-            // 如果不为空，则取第一个分配
-            auto it = free_page_store[page_count].begin();
-            memory_span memory = *it;
-            free_page_store[page_count].erase(it);
-            free_page_map.erase(memory.data());
-            return memory;
-        } else {
-            // 如果没有这个值
-            size_t page_to_allocate = std::max(PAGE_ALLOCATE_COUNT, page_count);
-            return system_allocate_memory(page_to_allocate).transform([this, page_count](memory_span memory) {
-                // 存入总的内存，用于结尾回收内存
-                page_vector.push_back(memory);
+
+        auto it = free_page_store.lower_bound(page_count);
+        while (it != free_page_store.end()) {
+            if (!it->second.empty()) {
+                // 如果存在一个页面，这个页面的大小是大于或等于要分配的页面的
+                auto mem_iter = it->second.begin();
+                memory_span free_memory = *mem_iter;
+                it->second.erase(mem_iter);
+                free_page_map.erase(free_memory.data());
+
+                // 开始分割获取出来的空闲的空间
                 size_t memory_to_use = page_count * size_utils::PAGE_SIZE;
-                memory_span result = memory.subspan(0, memory_to_use);
-                memory_span free_memory = memory.subspan(memory_to_use);
-                size_t index = free_memory.size() / size_utils::PAGE_SIZE;
-                free_page_store[index].emplace(free_memory);
-                free_page_map.emplace(free_memory.data(), free_memory);
-                return result;
-            });
+                memory_span memory = free_memory.subspan(0, memory_to_use);
+                free_memory = free_memory.subspan(memory_to_use);
+                if (free_memory.size()) {
+                    // 如果还有空间，则插回到缓存中
+                    free_page_store[free_memory.size() / size_utils::PAGE_SIZE].emplace(free_memory);
+                    free_page_map.emplace(free_memory.data(), free_memory);
+                }
+
+                return memory;
+            }
+            ++ it;
         }
+        // 如果已经没有足够大的页面了，则向系统申请
+        size_t page_to_allocate = std::max(PAGE_ALLOCATE_COUNT, page_count);
+        return system_allocate_memory(page_to_allocate).transform([this, page_count](memory_span memory) {
+            // 存入总的内存，用于结尾回收内存
+            page_vector.push_back(memory);
+            size_t memory_to_use = page_count * size_utils::PAGE_SIZE;
+            memory_span result = memory.subspan(0, memory_to_use);
+            memory_span free_memory = memory.subspan(memory_to_use);
+            size_t index = free_memory.size() / size_utils::PAGE_SIZE;
+            free_page_store[index].emplace(free_memory);
+            free_page_map.emplace(free_memory.data(), free_memory);
+            return result;
+        });
     }
 
     void page_cache::deallocate_page(memory_span page) {
