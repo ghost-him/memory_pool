@@ -33,6 +33,7 @@ namespace memory_pool {
     }
 
     void thread_cache::deallocate(void *start_p, size_t memory_size) {
+        memory_size = size_utils::align(memory_size);
         memory_span memory(static_cast<std::byte*>(start_p), memory_size);
         // 如果大于了最大缓存值了，说明是直接从中心缓存区申请的，可以直接返还给中心缓存区
         if (memory_size > size_utils::MAX_CACHED_UNIT_SIZE) {
@@ -63,6 +64,7 @@ namespace memory_pool {
         }
         return central_cache::get_instance().allocate(memory_size, block_count).transform([this, memory_size](std::list<memory_span>&& memory_list) {
             memory_span result = memory_list.front();
+            assert(result.size() == memory_size);
             memory_list.pop_front();
             size_t index = size_utils::get_index(memory_size);
             m_free_cache[index].splice(m_free_cache[index].end(), memory_list);

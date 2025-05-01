@@ -24,7 +24,7 @@ namespace memory_pool {
             return std::nullopt;
         }
 
-        if (memory_size > page_span::MAX_UNIT_COUNT) {
+        if (memory_size > size_utils::MAX_CACHED_UNIT_SIZE) {
             return page_cache::get_instance().allocate_unit(memory_size).transform([this](memory_span&& memory) {
                 return std::list<memory_span> {memory};
             });
@@ -94,6 +94,13 @@ namespace memory_pool {
             return std::nullopt;
         }
         m_status[index].clear(std::memory_order_release);
+
+        for (auto i = result.begin(); i != result.end(); i++) {
+            assert(i->size() == memory_size);
+        }
+
+        assert(result.size() == block_count);
+
         return result;
     }
 

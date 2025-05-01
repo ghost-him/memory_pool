@@ -24,6 +24,13 @@ target_link_libraries(memory_pool_exe PRIVATE
         memory_pool_lib
 )
 
+add_executable(memory_pool_performance performance_test.cpp)
+
+target_link_libraries(memory_pool_performance PRIVATE
+        memory_pool_lib
+)
+
+
 
 add_executable(page_cache_test tests/page_cache_test.cpp)
 
