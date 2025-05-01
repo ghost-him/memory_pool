@@ -4,7 +4,8 @@
 #include "memory_pool/utils.h"
 
 int main() {
-    auto ptr = memory_pool::memory_pool::allocate(446);
 
+    size_t allocate_page_count = memory_pool::size_utils::align(7456, memory_pool::size_utils::PAGE_SIZE) / memory_pool::size_utils::PAGE_SIZE;
+    std::cout << allocate_page_count << std::endl;
     return 0;
 }

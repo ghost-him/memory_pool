@@ -43,6 +43,9 @@ private:
     /// 当前还没有被分配的内存
     std::array<std::list<memory_span>, size_utils::CACHE_LINE_SIZE> m_free_cache;
 
+    /// 动态分配内存
+    size_t compute_allocate_count(size_t memory_size);
+
     /// 设置回收的上限
     size_t m_max_free_memory_blocks = 256;
 

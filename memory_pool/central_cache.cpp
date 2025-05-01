@@ -41,10 +41,12 @@ namespace memory_pool {
                 // 如果当前缓存的个数小于申请的块数，则向页分配器申请
 
                 // 一共要申请的大小
-                size_t total_size = block_count * memory_size;
+                //size_t total_size = block_count * memory_size;
                 // 要申请的页面的个数
-                size_t allocate_page_count = size_utils::align(total_size, size_utils::PAGE_SIZE) / size_utils::PAGE_SIZE;
-
+                // 原本使用这个，只分配适量的空间
+                //size_t allocate_page_count = size_utils::align(total_size, size_utils::PAGE_SIZE) / size_utils::PAGE_SIZE;
+                // 现在改成直接分配能分配的最大的大小
+                size_t allocate_page_count = size_utils::align(memory_size * size_utils::MAX_CACHED_UNIT_SIZE, size_utils::PAGE_SIZE) / size_utils::PAGE_SIZE;
                 auto ret = get_page_from_page_cache(allocate_page_count);
                 if (!ret.has_value()) {
                     m_status[index].clear(std::memory_order_release);

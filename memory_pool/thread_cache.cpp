@@ -58,10 +58,7 @@ namespace memory_pool {
     }
 
     std::optional<memory_span> thread_cache::allocate_from_central_cache(size_t memory_size) {
-        size_t block_count = 10;
-        if (memory_size > size_utils::MAX_CACHED_UNIT_SIZE) {
-            block_count = 1;
-        }
+        size_t block_count = compute_allocate_count(memory_size);
         return central_cache::get_instance().allocate(memory_size, block_count).transform([this, memory_size](std::list<memory_span>&& memory_list) {
             memory_span result = memory_list.front();
             assert(result.size() == memory_size);
@@ -70,5 +67,19 @@ namespace memory_pool {
             m_free_cache[index].splice(m_free_cache[index].end(), memory_list);
             return result;
         });
+    }
+
+    size_t thread_cache::compute_allocate_count(size_t memory_size) {
+        if (memory_size <= 32)
+            return 256;
+        if (memory_size <= 64)
+            return 128;
+        if (memory_size <= 128)
+            return 64;
+        if (memory_size <= 256)
+            return 32;
+        if (memory_size <= size_utils::MAX_CACHED_UNIT_SIZE)
+            return 16;
+        return 1;
     }
 } // memory_pool

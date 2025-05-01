@@ -49,9 +49,11 @@ namespace memory_pool {
             size_t memory_to_use = page_count * size_utils::PAGE_SIZE;
             memory_span result = memory.subspan(0, memory_to_use);
             memory_span free_memory = memory.subspan(memory_to_use);
-            size_t index = free_memory.size() / size_utils::PAGE_SIZE;
-            free_page_store[index].emplace(free_memory);
-            free_page_map.emplace(free_memory.data(), free_memory);
+            if (free_memory.size()) {
+                size_t index = free_memory.size() / size_utils::PAGE_SIZE;
+                free_page_store[index].emplace(free_memory);
+                free_page_map.emplace(free_memory.data(), free_memory);
+            }
             return result;
         });
     }
