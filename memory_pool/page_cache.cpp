@@ -42,6 +42,7 @@ namespace memory_pool {
             ++ it;
         }
         // 如果已经没有足够大的页面了，则向系统申请
+        // 一次性分配8MB的大小，为2048个页面，而批量申请的全都取最大是4mb，-> 16KB(缓存最大大小) * 512(一次性管理最大个数) = 4MB
         size_t page_to_allocate = std::max(PAGE_ALLOCATE_COUNT, page_count);
         return system_allocate_memory(page_to_allocate).transform([this, page_count](memory_span memory) {
             // 存入总的内存，用于结尾回收内存

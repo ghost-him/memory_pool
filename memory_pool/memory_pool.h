@@ -24,16 +24,6 @@ public:
     static void deallocate(void* start_p, size_t memory_size) {
         thread_cache::get_instance().deallocate(start_p, memory_size);
     }
-
-    /// 调整当前线程的回收阈值
-    static void set_this_thread_max_free_memory_blocks(const size_t max_free_size) noexcept {
-        thread_cache::get_instance().set_max_free_memory_blocks(max_free_size);
-    }
-
-    /// 获取当前线程的回收阈值
-    static size_t get_this_thread_max_free_memory_blocks() noexcept {
-        return thread_cache::get_instance().get_max_free_memory_blocks();
-    }
 };
 
 } // memory_pool

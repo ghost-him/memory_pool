@@ -104,7 +104,7 @@ TEST_F(CentralCacheTest, AllocateLargeObject) {
     // 假设 page_span::MAX_UNIT_COUNT 是 512 (根据 central_cache.cpp 中的注释)
     // 但实际应从 page_span 定义获取或设置为已知常量
     // 我们用一个明显大于 512 的值，但也需要是 8 的倍数
-    size_t large_size = 1024 * 8; // 8KB
+    size_t large_size = 1024 * 32; // 32KB
     // 确保这个大小大于 MAX_UNIT_COUNT，如果 MAX_UNIT_COUNT 更大则需要调整
     // ASSERT_GT(large_size, page_span::MAX_UNIT_COUNT); // 假设 MAX_UNIT_COUNT 在 page_span.h 定义
 

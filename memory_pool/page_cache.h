@@ -18,7 +18,7 @@ namespace memory_pool {
 
 class page_cache {
 public:
-    static constexpr size_t PAGE_ALLOCATE_COUNT = 8;
+    static constexpr size_t PAGE_ALLOCATE_COUNT = 2048;
     static page_cache& get_instance() {
         static page_cache instance;
         return instance;

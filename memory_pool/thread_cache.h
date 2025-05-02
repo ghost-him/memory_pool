@@ -10,6 +10,7 @@
 #include <set>
 #include "utils.h"
 #include <span>
+#include <unordered_map>
 
 namespace memory_pool {
 
@@ -29,12 +30,6 @@ class thread_cache {
     /// 参数： start_p:内存开始的地址, size_t：这片地址的大小
     void deallocate(void* start_p, size_t memory_size);
 
-    /// 设置最大空闲内存回收块的上限
-    void set_max_free_memory_blocks(const size_t max_free_blocks) noexcept { m_max_free_memory_blocks = max_free_blocks; }
-
-    /// 获取当前线程的回收机制
-    [[nodiscard("如果不需要该值，则不要调用该函数")]] size_t get_max_free_memory_blocks() const noexcept { return m_max_free_memory_blocks; }
-
 private:
 
     /// 向高层申请一块空间
@@ -46,8 +41,14 @@ private:
     /// 动态分配内存
     size_t compute_allocate_count(size_t memory_size);
 
-    /// 设置回收的上限
-    size_t m_max_free_memory_blocks = 256;
+    /// 用于表示下一次再申请指定大小的内存时，会申请几个内存
+    std::array<size_t, size_utils::CACHE_LINE_SIZE> m_next_allocate_count;
+
+    /// 设置每个列表缓存的上限为256KB（对于16KB的对象即为缓存 256KB / 16KB = 16个）
+    /// 这个阈值的设置需要分析，如果常用的分配的量比较少
+    /// 比如只申请几个固定大小的空间，则这个值可以设置的大一些
+    /// 而申请的内存空间的大小很复杂，则需要设置的小一些，不然可能会让单个线程的空间占用过多
+    static constexpr size_t MAX_FREE_BYTES_PER_LISTS = 256 * 1024;
 
 };
 

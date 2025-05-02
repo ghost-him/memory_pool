@@ -11,6 +11,7 @@
 #include <optional>
 #include <mutex>
 #include <set>
+#include <unordered_map>
 
 #include "utils.h"
 

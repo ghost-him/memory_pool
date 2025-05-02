@@ -11,6 +11,7 @@
 
 namespace memory_pool {
 
+    //using memory_span = std::span<std::byte>;
     class memory_span {
     public:
         memory_span(std::byte* data, const std::size_t size) :m_data(data), m_size(size) {}
@@ -20,8 +21,14 @@ namespace memory_pool {
         std::size_t size() const { return m_size; }
         auto operator<=>(const memory_span & other) const { return m_data <=> other.m_data; }
         auto operator==(const memory_span & other) const { return m_data == other.m_data && m_size == other.m_size; }
-        memory_span subspan(const std::size_t offset, const std::size_t size) const { return memory_span {m_data + offset, size}; }
-        memory_span subspan(const std::size_t offset) const { return memory_span {m_data + offset, m_size - offset}; }
+        memory_span subspan(const std::size_t offset, const std::size_t size) const {
+            assert(m_data + offset <= m_data + size);
+            return memory_span {m_data + offset, size};
+        }
+        memory_span subspan(const std::size_t offset) const {
+            assert(m_size - offset >= 0);
+            return memory_span {m_data + offset, m_size - offset};
+        }
     private:
         // 当前管理的内存的起始地址
         std::byte* m_data;
@@ -35,9 +42,10 @@ namespace memory_pool {
         static constexpr size_t ALIGNMENT = sizeof(void *);
         static constexpr size_t PAGE_SIZE = 4096;
         //最大可以接受 64 * 8 = 512B 的对象
-        static constexpr size_t CACHE_LINE_SIZE = 64;
+        //static constexpr size_t CACHE_LINE_SIZE = 64;
         // 这个值就是缓存的最大的内容
-        static constexpr size_t MAX_CACHED_UNIT_SIZE = (CACHE_LINE_SIZE) * size_utils::ALIGNMENT;
+        static constexpr size_t MAX_CACHED_UNIT_SIZE = 16 * 1024; // 16KB 为大内存的临界点
+        static constexpr size_t CACHE_LINE_SIZE = MAX_CACHED_UNIT_SIZE / ALIGNMENT;
         /// 内存字节数对齐，对齐成8的倍数，8字节也是内存池最小的分配大小
         static size_t align(const size_t memory_size, const size_t alignment = ALIGNMENT) {
             return (memory_size + alignment - 1) & ~(alignment - 1);
@@ -55,7 +63,7 @@ namespace memory_pool {
         static constexpr size_t MAX_UNIT_COUNT = size_utils::PAGE_SIZE / size_utils::ALIGNMENT;
         /// 初始化这个page_span
         /// 参数：span:这个page_span管理的空间，unit_size
-        page_span(const memory_span span, const size_t unit_size): m_memory(span), m_unit_size(unit_size) {};
+        page_span(const memory_span span, const size_t unit_size): m_memory(span), m_unit_size(unit_size) { };
 
         // 根据内存地址的起始位置进行相比
         auto operator<=>(const page_span& other) const {

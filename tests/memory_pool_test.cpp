@@ -241,32 +241,6 @@ TEST(MemoryPoolTest, NoOverlap) {
 }
 
 
-// === Thread Cache Threshold Tests ===
-
-TEST(MemoryPoolTest, ThreadCacheThresholdGetSet) {
-    // Get the default threshold for this thread
-    size_t default_threshold = memory_pool::memory_pool::get_this_thread_max_free_memory_blocks();
-    ASSERT_GT(default_threshold, 0) << "Default threshold should be positive";
-
-    // Set a new threshold
-    size_t new_threshold = 10;
-    memory_pool::memory_pool::set_this_thread_max_free_memory_blocks(new_threshold);
-
-    // Verify the new threshold is set
-    ASSERT_EQ(memory_pool::memory_pool::get_this_thread_max_free_memory_blocks(), new_threshold);
-
-    // Set another value
-    size_t another_threshold = default_threshold * 2;
-     memory_pool::memory_pool::set_this_thread_max_free_memory_blocks(another_threshold);
-     ASSERT_EQ(memory_pool::memory_pool::get_this_thread_max_free_memory_blocks(), another_threshold);
-
-
-    // Restore the default (or a known state) to potentially avoid interfering with other tests
-    // Note: Thread locality means this only affects the *current* test thread.
-    memory_pool::memory_pool::set_this_thread_max_free_memory_blocks(default_threshold);
-    ASSERT_EQ(memory_pool::memory_pool::get_this_thread_max_free_memory_blocks(), default_threshold);
-}
-
 // === Multi-threading Tests ===
 
 // Task for concurrent allocation/deallocation within a single thread
