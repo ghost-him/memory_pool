@@ -81,7 +81,7 @@ namespace memory_pool {
         // 获取其下标
         size_t index = size_utils::get_index(memory_size);
 
-        if (index > size_utils::CACHE_LINE_SIZE) {
+        if (index >= size_utils::CACHE_LINE_SIZE) {
             return 1;
         }
 

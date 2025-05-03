@@ -7,7 +7,9 @@
 #include <bitset>
 #include <cassert>
 #include <cstddef>
+#include <iostream>
 #include <span>
+#include <bits/ostream.tcc>
 
 namespace memory_pool {
 
@@ -109,7 +111,7 @@ namespace memory_pool {
         std::bitset<MAX_UNIT_COUNT> m_allocated_map;
     };
 
-
+    size_t check_ptr_length(std::byte* ptr);
 } // memory_pool
 
 #endif //UTILS_H

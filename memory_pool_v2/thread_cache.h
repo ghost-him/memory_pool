@@ -15,7 +15,7 @@
 namespace memory_pool {
 
 class thread_cache {
-    public:
+public:
     static thread_cache& get_instance() {
         static thread_local thread_cache instance;
         return instance;
@@ -30,13 +30,15 @@ class thread_cache {
     /// 参数： start_p:内存开始的地址, size_t：这片地址的大小
     void deallocate(void* start_p, size_t memory_size);
 
-private:
+//private:
 
     /// 向高层申请一块空间
-    std::optional<memory_span> allocate_from_central_cache(size_t memory_size);
+    std::optional<std::byte*> allocate_from_central_cache(size_t memory_size);
 
     /// 当前还没有被分配的内存
-    std::array<std::list<memory_span>, size_utils::CACHE_LINE_SIZE> m_free_cache;
+    std::array<std::byte* , size_utils::CACHE_LINE_SIZE> m_free_cache = {};
+    /// 指定下标存放的大小
+    std::array<size_t, size_utils::CACHE_LINE_SIZE> m_free_cache_size = {};
 
     /// 动态分配内存
     size_t compute_allocate_count(size_t memory_size);
