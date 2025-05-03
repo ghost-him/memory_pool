@@ -33,11 +33,7 @@ namespace memory_pool {
         const size_t index = size_utils::get_index(memory_size);
         std::byte* result = nullptr;
 
-        auto& flag = m_status[index];
-        // std::unique_lock<std::mutex> guard(flag);
-        while (flag.test_and_set(std::memory_order_acquire)) {
-            std::this_thread::yield();
-        }
+        atomic_flag_guard guard(m_status[index]);
 
         try {
             if (m_free_array_size[index] < block_count) {
@@ -53,7 +49,6 @@ namespace memory_pool {
                 size_t allocate_page_count = size_utils::align(memory_size * allocate_unit_count, size_utils::PAGE_SIZE) / size_utils::PAGE_SIZE;
                 auto ret = get_page_from_page_cache(allocate_page_count);
                 if (!ret.has_value()) {
-                    m_status[index].clear(std::memory_order_release);
                     return std::nullopt;
                 }
                 memory_span memory = ret.value();
@@ -111,14 +106,12 @@ namespace memory_pool {
                 }
             }
         } catch (...) {
-            m_status[index].clear(std::memory_order_release);
             throw std::runtime_error("Memory allocation failed");
             return std::nullopt;
         }
 
 
         assert(check_ptr_length(result) == block_count);
-        m_status[index].clear(std::memory_order_release);
         return result;
     }
 
@@ -132,11 +125,7 @@ namespace memory_pool {
         }
 
         const size_t index = size_utils::get_index(memory_size);
-        auto& flag = m_status[index];
-        //std::unique_lock<std::mutex> guard(flag);
-        while (flag.test_and_set(std::memory_order_acquire)) {
-            std::this_thread::yield();
-        }
+        atomic_flag_guard guard(m_status[index]);
 
         std::byte* current_memory = memory_list;
         while (current_memory != nullptr) {
@@ -199,8 +188,6 @@ namespace memory_pool {
             }
             current_memory = next_node_to_add;
         }
-        //
-        m_status[index].clear(std::memory_order_release);
     }
 
     void central_cache::record_allocated_memory_span(std::byte* memory, const size_t memory_size) {

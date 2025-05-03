@@ -4,14 +4,31 @@
 
 #ifndef UTILS_H
 #define UTILS_H
+#include <atomic>
 #include <bitset>
 #include <cassert>
 #include <cstddef>
 #include <iostream>
 #include <span>
+#include <thread>
 #include <bits/ostream.tcc>
 
 namespace memory_pool {
+
+    class atomic_flag_guard {
+    public:
+        atomic_flag_guard(std::atomic_flag& flag):m_flag(flag) {
+            while (m_flag.test_and_set(std::memory_order_acquire)) {
+                std::this_thread::yield();
+            }
+        }
+        ~atomic_flag_guard() {
+            m_flag.clear(std::memory_order_release);
+        }
+    private:
+        std::atomic_flag& m_flag;
+    };
+
 
     //using memory_span = std::span<std::byte>;
     class memory_span {

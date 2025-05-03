@@ -30,7 +30,7 @@ public:
     /// 参数： start_p:内存开始的地址, size_t：这片地址的大小
     void deallocate(void* start_p, size_t memory_size);
 
-//private:
+private:
 
     /// 向高层申请一块空间
     std::optional<std::byte*> allocate_from_central_cache(size_t memory_size);

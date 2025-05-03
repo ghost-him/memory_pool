@@ -39,7 +39,7 @@ namespace memory_pool {
         /// 注意点：这一个列表中，每一个内存块大小必须是一样的。
         void deallocate(std::byte* memory_list, size_t memory_size);
 
-    //private:
+    private:
         /// 将分配出去的内存块记录下来
         void record_allocated_memory_span(std::byte* memory, const size_t memory_size);
 
