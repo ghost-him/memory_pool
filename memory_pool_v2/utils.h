@@ -17,7 +17,7 @@ namespace memory_pool {
 
     class atomic_flag_guard {
     public:
-        atomic_flag_guard(std::atomic_flag& flag):m_flag(flag) {
+        explicit atomic_flag_guard(std::atomic_flag& flag):m_flag(flag) {
             while (m_flag.test_and_set(std::memory_order_acquire)) {
                 std::this_thread::yield();
             }
@@ -75,7 +75,13 @@ namespace memory_pool {
         }
     };
 
-    // 这个类用于管理从page_cache中分配下来的内存
+    // 这个 page_span 类用于管理从page_cache中分配下来的内存
+    // 这个实现方式可以用于判断指定的内存块是不是被多次分配或多次释放了，因为这个的实现内部使用到了bitset作为判断
+    // 也正是因为这个bitset，会导致central_cache一次最高只能分配不超过bitset容量的内存块
+    // 所以可以在debug的时候使用这种实现方法，确保内存不会被多次释放，而在release模式下使用下面那种方式
+    // 如果限定了page_span的大小，就要确保central_cache中一次分配不超过指定的大小
+
+#ifndef NDEBUG
     class page_span {
     public:
         // 4096 / 8 = 512。考虑到32位的系统，这里就使用了静态变量。
@@ -127,6 +133,60 @@ namespace memory_pool {
         // 所以这里的值决定了整体的分配情况
         std::bitset<MAX_UNIT_COUNT> m_allocated_map;
     };
+#else
+
+    class page_span {
+    public:
+        /// 初始化这个page_span
+        /// 参数：span:这个page_span管理的空间，unit_size
+        page_span(const memory_span span, const size_t unit_size): m_memory(span), m_unit_size(unit_size) { };
+
+        // 根据内存地址的起始位置进行相比
+        auto operator<=>(const page_span& other) const {
+            return m_memory.data() <=> other.m_memory.data();
+        }
+
+        // 当前的页面是不是全都没有被分配
+        bool is_empty() {
+            // 如果一个都没被分配出去，说明是empty的
+            return m_allocated_unit_count == 0;
+        }
+
+        // 申请一块内存
+        void allocate(memory_span memory) { m_allocated_unit_count ++;}
+
+        // 把这一块内存归还给页面
+        void deallocate(memory_span memory) { m_allocated_unit_count --;}
+
+        // 判断某一段空间是不是被这个管理的
+        bool is_valid_unit_span(memory_span memory);
+
+        // 管理的内存长度
+        size_t size() { return m_memory.size(); }
+
+        // 起始地址
+        std::byte* data() {
+            return m_memory.data();
+        }
+
+        // 维护的长度
+        size_t unit_size() { return m_unit_size; }
+
+        // 获得这个所维护的地址
+        memory_span get_memory_span() { return m_memory; }
+
+    private:
+        // 这个page_span管理的空间大小
+        const memory_span m_memory;
+        // 一个分配单位的大小
+        const size_t m_unit_size;
+        // 管理的大小
+        size_t m_total_unit_count;
+        // 分配出去的个数
+        size_t m_allocated_unit_count;
+    };
+
+#endif
 
     size_t check_ptr_length(std::byte* ptr);
 } // memory_pool

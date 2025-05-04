@@ -12,6 +12,7 @@
 #include <thread>
 
 #include "page_cache.h"
+#include "../memory_pool/thread_cache.h"
 
 namespace memory_pool {
     std::optional<std::byte*> central_cache::allocate(const size_t memory_size, const size_t block_count) {
@@ -45,8 +46,7 @@ namespace memory_pool {
                 // 原本使用这个，只分配适量的空间
                 //size_t allocate_page_count = size_utils::align(total_size, size_utils::PAGE_SIZE) / size_utils::PAGE_SIZE;
                 // 现在改成直接分配能分配的最大的大小
-                size_t allocate_unit_count = page_span::MAX_UNIT_COUNT;
-                size_t allocate_page_count = size_utils::align(memory_size * allocate_unit_count, size_utils::PAGE_SIZE) / size_utils::PAGE_SIZE;
+                size_t allocate_page_count = get_page_allocate_count(memory_size);
                 auto ret = get_page_from_page_cache(allocate_page_count);
                 if (!ret.has_value()) {
                     return std::nullopt;
@@ -56,8 +56,15 @@ namespace memory_pool {
                 // 用于管理这个页面
                 page_span page_span(memory, memory_size);
 
+#ifndef NDEBUG
+                // 如果使用的page_span是固定大小管理的，则可分配的个数也是固定的
+                size_t allocate_unit_count = page_span::MAX_UNIT_COUNT;
+#else
+                // 否则就是可以直接分配的
+                size_t allocate_unit_count = memory.size() / memory_size;
+#endif
+
                 // 根据分配出来的内存，实际可以划分出的内存个数
-                assert(allocate_unit_count == 512);
                 //assert((memory.size() / memory_size) >= allocate_page_count);
                 for (size_t i = 0; i < block_count; i++) {
                     memory_span split_memory = memory.subspan(0, memory_size);
@@ -184,10 +191,34 @@ namespace memory_pool {
                 }
                 memory_span page_memory = it->second.get_memory_span();
                 m_page_set[index].erase(it);
+                // 如果是动态分配申请页面的
+#ifdef NDEBUG
+                // 如果回收了指定的页面，则说明当前这个空间分配的过多了，下一次申请内存的时候要少一点申请
+                m_next_allocate_memory_group_count[index] /= 2;
+#endif
+
                 page_cache::get_instance().deallocate_page(page_memory);
             }
             current_memory = next_node_to_add;
         }
+    }
+
+    size_t central_cache::get_page_allocate_count(size_t memory_size) {
+#ifndef NDEBUG
+        // 如果page_span一次性有最大的管理上限，那么就一次性分配管理上限个的页面
+        size_t allocate_unit_count = page_span::MAX_UNIT_COUNT;
+        size_t allocate_page_count = size_utils::align(memory_size * allocate_unit_count, size_utils::PAGE_SIZE) / size_utils::PAGE_SIZE;
+        return allocate_page_count;
+#else
+        size_t index = size_utils::get_index(memory_size);
+        size_t result = m_next_allocate_memory_group_count[index];
+        // 最小要分配一组的数据
+        result = std::max(result, static_cast<size_t>(1));
+        // 下一次再请求分配的时候，就再加一组的数据
+        size_t next_allocate_page_count = result + 1;
+        m_next_allocate_memory_group_count[index] = next_allocate_page_count;
+        return size_utils::align(result * thread_cache::MAX_FREE_BYTES_PER_LISTS, size_utils::PAGE_SIZE) / size_utils::PAGE_SIZE;
+#endif
     }
 
     void central_cache::record_allocated_memory_span(std::byte* memory, const size_t memory_size) {

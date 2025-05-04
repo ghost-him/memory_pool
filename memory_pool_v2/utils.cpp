@@ -8,6 +8,8 @@
 #include <cstdint>
 
 namespace memory_pool {
+
+#ifndef NDEBUG
     void page_span::allocate(memory_span memory) {
         assert(is_valid_unit_span(memory));
         uint64_t address_offset = memory.data() - m_memory.data();
@@ -24,6 +26,7 @@ namespace memory_pool {
         assert(m_allocated_map[index] == 1);
         m_allocated_map[index] = false;
     }
+#endif
 
     bool page_span::is_valid_unit_span(memory_span memory)  {
         // 如果归还的空间的大小与这个页面管理的大小不一样，则报错

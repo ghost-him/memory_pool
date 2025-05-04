@@ -127,8 +127,10 @@ namespace memory_pool {
 
         // 计算下一次要申请的个数，默认乘2
         size_t next_allocate_count = result * 2;
+#ifndef NDEBUG
         // 要确保不会超过center_cache一次申请的最大个数
         next_allocate_count = std::min(next_allocate_count, page_span::MAX_UNIT_COUNT);
+#endif
         // 同时也要确保不会超过一个列表维护的最大容量
         // 比如16KB的内存块，不能一次性申请128个吧
         // 256 * 1024 B / 16 * 1024 B / 2 = 8个（这里就将16KB的内存一次性最多申请8个，要给点冗余(除2)，不然可能会反复申请）

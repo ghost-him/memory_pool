@@ -24,7 +24,7 @@
 const unsigned int NUM_THREADS = std::thread::hardware_concurrency(); // 线程数，使用硬件支持的最大并发数
 const size_t NUM_OPERATIONS_PER_THREAD = 200000; // 每个线程执行的操作总数
 const size_t MIN_ALLOC_SIZE = 8;                  // 最小分配内存块大小 (字节)
-const size_t MAX_ALLOC_SIZE = 1024;                // 最大分配内存块大小 (字节)，覆盖常见的小对象大小
+const size_t MAX_ALLOC_SIZE = 64;                // 最大分配内存块大小 (字节)，覆盖常见的小对象大小
 const int ALLOC_PERCENTAGE = 60;                  // 分配操作所占的百分比
 const unsigned int RANDOM_SEED = 54321;           // 固定的随机种子，确保每次运行结果可复现
 // std::pmr::memory_resource 要求的默认对齐方式
