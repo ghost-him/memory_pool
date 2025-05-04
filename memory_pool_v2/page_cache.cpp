@@ -11,7 +11,7 @@
 #include <bits/ostream.tcc>
 #include <sys/mman.h>
 
-namespace memory_pool {
+namespace memory_pool_v2 {
     std::optional<memory_span> page_cache::allocate_page(size_t page_count) {
         if (page_count == 0) {
             return std::nullopt;

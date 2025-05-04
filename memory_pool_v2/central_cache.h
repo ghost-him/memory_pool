@@ -17,7 +17,7 @@
 
 class CentralCacheTest;
 
-namespace memory_pool {
+namespace memory_pool_v2 {
     // 中心存储器
     class central_cache {
     public:

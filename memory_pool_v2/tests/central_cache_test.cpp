@@ -17,7 +17,7 @@
 #include <array>    // 需要包含 array (central_cache.h 用了)
 
 
-using namespace memory_pool;
+using namespace memory_pool_v2;
 
 // --- Helper Functions (来自原始代码) ---
 // Helper to count nodes in the intrusive list

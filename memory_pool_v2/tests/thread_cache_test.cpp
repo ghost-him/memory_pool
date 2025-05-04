@@ -8,36 +8,39 @@
 #include "thread_cache.h" // 包含 thread_cache 类定义
 #include "utils.h"       // 包含 size_utils, check_ptr_length 等
 #include "central_cache.h" // 包含 central_cache 声明 (需要链接其实现)
-
+// 该内容由 gemini 2.5 pro preview 03-25 生成，https://aistudio.google.com/prompts/new_chat
 // 测试 Fixture
+
+// 运行这个测试代码时，需要将成员变量公开
+
 class ThreadCacheTest : public ::testing::Test {
 protected:
     using byte = std::byte;
-    memory_pool::thread_cache* tc = nullptr; // 指向当前线程的 thread_cache 实例
+    memory_pool_v2::thread_cache* tc = nullptr; // 指向当前线程的 thread_cache 实例
 
     // Helper to get aligned size and index
     static size_t get_aligned_size(size_t size) {
-        return memory_pool::size_utils::align(size);
+        return memory_pool_v2::size_utils::align(size);
     }
     static size_t get_index_for_size(size_t size) {
-        return memory_pool::size_utils::get_index(get_aligned_size(size));
+        return memory_pool_v2::size_utils::get_index(get_aligned_size(size));
     }
 
     void SetUp() override {
         // 1. 获取当前线程的 thread_cache 实例
-        tc = &memory_pool::thread_cache::get_instance();
+        tc = &memory_pool_v2::thread_cache::get_instance();
 
         // 2. 重置 thread_cache 的状态
         // 非常重要：由于 thread_local，状态会在同一线程的测试间保持。
         // 我们需要清理缓存，将内存归还给 Central Cache 以避免内存泄漏
         // 并重置计数器，确保每个测试从干净的状态开始。
-        for (size_t i = 0; i < memory_pool::size_utils::CACHE_LINE_SIZE; ++i) {
+        for (size_t i = 0; i < memory_pool_v2::size_utils::CACHE_LINE_SIZE; ++i) {
             if (tc->m_free_cache[i] != nullptr) {
                 // 计算这个列表对应的内存大小
-                size_t block_size = (i + 1) * memory_pool::size_utils::ALIGNMENT;
+                size_t block_size = (i + 1) * memory_pool_v2::size_utils::ALIGNMENT;
                 // 调用 central_cache 的 deallocate 来归还整个链表
                 // 注意：这依赖于一个可工作的 central_cache 实现
-                memory_pool::central_cache::get_instance().deallocate(tc->m_free_cache[i], block_size);
+                memory_pool_v2::central_cache::get_instance().deallocate(tc->m_free_cache[i], block_size);
 
                 // 清空 thread_cache 内部记录
                 tc->m_free_cache[i] = nullptr;
@@ -66,7 +69,7 @@ TEST_F(ThreadCacheTest, DeallocateNullOrSizeZero) {
     // 注意：这需要 central_cache 能分配少量内存
     size_t dummy_size = 8;
     size_t count = 1;
-    auto mem_opt = memory_pool::central_cache::get_instance().allocate(dummy_size, count);
+    auto mem_opt = memory_pool_v2::central_cache::get_instance().allocate(dummy_size, count);
     // 如果 central_cache 无法分配，则无法进行此测试的部分内容
     ASSERT_TRUE(mem_opt.has_value() && mem_opt.value() != nullptr);
     void* dummy_ptr = mem_opt.value();
@@ -85,12 +88,12 @@ TEST_F(ThreadCacheTest, DeallocateNullOrSizeZero) {
     EXPECT_EQ(tc->m_free_cache[index_to_check], initial_ptr);
 
     // 清理：手动释放 dummy_ptr 回 central_cache，因为它没有被 thread_cache 处理
-    memory_pool::central_cache::get_instance().deallocate(static_cast<byte*>(dummy_ptr), dummy_size);
+    memory_pool_v2::central_cache::get_instance().deallocate(static_cast<byte*>(dummy_ptr), dummy_size);
 }
 
 
 TEST_F(ThreadCacheTest, AllocateSmallBlockCacheMiss) {
-    using namespace memory_pool;
+    using namespace memory_pool_v2;
     const size_t alloc_size = 16;
     const size_t aligned_size = get_aligned_size(alloc_size);
     const size_t index = get_index_for_size(alloc_size);
@@ -126,7 +129,7 @@ TEST_F(ThreadCacheTest, AllocateSmallBlockCacheMiss) {
 }
 
 TEST_F(ThreadCacheTest, AllocateSmallBlockCacheHit) {
-    using namespace memory_pool;
+    using namespace memory_pool_v2;
     const size_t alloc_size = 32;
     const size_t aligned_size = get_aligned_size(alloc_size);
     const size_t index = get_index_for_size(alloc_size);
@@ -164,7 +167,7 @@ TEST_F(ThreadCacheTest, AllocateSmallBlockCacheHit) {
 }
 
 TEST_F(ThreadCacheTest, AllocateLargeBlockDirect) {
-    using namespace memory_pool;
+    using namespace memory_pool_v2;
     const size_t large_size = size_utils::MAX_CACHED_UNIT_SIZE + 8;
 
     // 初始状态检查（所有缓存列表应为空）
@@ -194,7 +197,7 @@ TEST_F(ThreadCacheTest, AllocateLargeBlockDirect) {
 }
 
 TEST_F(ThreadCacheTest, DeallocateLargeBlockDirect) {
-     using namespace memory_pool;
+     using namespace memory_pool_v2;
     const size_t large_size = size_utils::MAX_CACHED_UNIT_SIZE + 16;
 
     // 1. 先分配一个大块内存 (直接从 central_cache)
@@ -220,7 +223,7 @@ TEST_F(ThreadCacheTest, DeallocateLargeBlockDirect) {
 }
 
 TEST_F(ThreadCacheTest, AlignmentTest) {
-    using namespace memory_pool;
+    using namespace memory_pool_v2;
     const size_t unaligned_size = 10; // 小于 ALIGNMENT
     const size_t aligned_size = get_aligned_size(unaligned_size); // 应该是 ALIGNMENT (e.g., 8) or 16 depending on ALIGNMENT
     const size_t index = get_index_for_size(unaligned_size); // 索引基于对齐后的大小
@@ -247,7 +250,7 @@ TEST_F(ThreadCacheTest, AlignmentTest) {
 }
 
 TEST_F(ThreadCacheTest, DeallocateTriggersReturnToCentralCache) {
-    using namespace memory_pool;
+    using namespace memory_pool_v2;
     const size_t alloc_size = 128; // 选择一个大小
     const size_t aligned_size = get_aligned_size(alloc_size);
     const size_t index = get_index_for_size(alloc_size);

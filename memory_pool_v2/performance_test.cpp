@@ -403,7 +403,7 @@ int main() {
             // 注意: 这里假设你的 memory_pool 实现是 memory_pool::memory_pool::allocate
             // 如果是 namespace memory_pool { void* allocate(...); }
             // 则应该是 memory_pool::allocate(size);
-            auto result = memory_pool::memory_pool::allocate(size);
+            auto result = memory_pool_v2::memory_pool::allocate(size);
 
             // 根据实际返回类型调整 (示例：如果返回 optional)
             // if constexpr (std::is_same_v<decltype(result), std::optional<void*>>) {
@@ -426,7 +426,7 @@ int main() {
     };
     auto memory_pool_dealloc = [](void* p, size_t s) {
         // 同样，确认接口是否为 memory_pool::memory_pool::deallocate
-        memory_pool::memory_pool::deallocate(p, s);
+        memory_pool_v2::memory_pool::deallocate(p, s);
     };
 
     // 标准 malloc/free 的包装器

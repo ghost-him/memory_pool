@@ -19,8 +19,12 @@ FetchContent_MakeAvailable(googletest)
 find_package(Threads REQUIRED)
 
 
-add_executable(memory_pool_exe main.cpp)
-
-target_link_libraries(memory_pool_exe PRIVATE
+add_executable(memory_pool_v1_exe main.cpp)
+target_link_libraries(memory_pool_v1_exe PRIVATE
         memory_pool_lib
+)
+
+add_executable(memory_pool_v2_exe main.cpp)
+target_link_libraries(memory_pool_v2_exe PRIVATE
+        memory_pool_v2_lib
 )

@@ -12,7 +12,7 @@
 #include <span>
 #include <unordered_map>
 
-namespace memory_pool {
+namespace memory_pool_v2 {
 
 class thread_cache {
 public:

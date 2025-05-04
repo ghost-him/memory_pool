@@ -13,7 +13,7 @@
 #include <thread>
 #include <bits/ostream.tcc>
 
-namespace memory_pool {
+namespace memory_pool_v2 {
 
     class atomic_flag_guard {
     public:

@@ -18,20 +18,17 @@ find_package(Threads REQUIRED)
 target_link_libraries(memory_pool_v2_lib PRIVATE Threads::Threads)
 
 add_executable(memory_pool_performance_v2 performance_test.cpp)
-
 target_link_libraries(memory_pool_performance_v2 PRIVATE
         memory_pool_v2_lib
 )
 
 add_executable(page_cache_test_v2 tests/page_cache_test.cpp)
-
 target_link_libraries(page_cache_test_v2 PRIVATE
         memory_pool_v2_lib
         GTest::gtest_main
 )
 
 add_executable(page_span_test_v2 tests/page_span_test.cpp)
-
 target_link_libraries(page_span_test_v2 PRIVATE
         memory_pool_v2_lib
         GTest::gtest_main
@@ -60,4 +57,4 @@ target_link_libraries(memory_pool_test_v2 PRIVATE
 
 # Discover tests using CTest
 include(GoogleTest)
-gtest_discover_tests(page_cache_test_v2 page_span_test central_cache_test memory_pool_test)
+gtest_discover_tests(page_cache_test_v2 page_span_test_v2 central_cache_test_v2 memory_pool_test_v2)

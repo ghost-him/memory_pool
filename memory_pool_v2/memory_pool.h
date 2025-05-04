@@ -8,7 +8,7 @@
 
 #include "thread_cache.h"
 
-namespace memory_pool {
+namespace memory_pool_v2 {
 
 class memory_pool {
 public:

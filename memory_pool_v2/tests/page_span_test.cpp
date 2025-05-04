@@ -1,12 +1,12 @@
 // 该内容由 gemini 2.5 pro preview 03-25 生成，https://aistudio.google.com/prompts/new_chat
 #include "gtest/gtest.h"
-#include "../memory_pool/utils.h" // 包含你要测试的头文件
+#include "../memory_pool_v2/utils.h" // 包含你要测试的头文件
 #include <vector>             // 用于轻松管理测试内存
 #include <memory>             // 用于 unique_ptr (可选，但推荐)
 #include <numeric>            // 用于 std::iota (可选，用于填充测试数据)
 #include <cstddef>            // size_t, byte
 
-using namespace memory_pool;
+using namespace memory_pool_v2;
 
 // 定义一个测试 Fixture，方便设置和清理共享资源
 class PageSpanTest : public ::testing::Test {

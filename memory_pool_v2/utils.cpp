@@ -7,7 +7,7 @@
 #include <cassert>
 #include <cstdint>
 
-namespace memory_pool {
+namespace memory_pool_v2 {
 
 #ifndef NDEBUG
     void page_span::allocate(memory_span memory) {

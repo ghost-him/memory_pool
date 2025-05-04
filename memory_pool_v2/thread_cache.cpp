@@ -11,7 +11,7 @@
 #include "central_cache.h"
 #include "utils.h"
 
-namespace memory_pool {
+namespace memory_pool_v2 {
     std::optional<void *> thread_cache::allocate(size_t memory_size) {
         if (memory_size == 0) {
             return std::nullopt; // 对于大小为0的情况立即返回nullopt

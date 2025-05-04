@@ -4,5 +4,5 @@
 
 #include "memory_pool.h"
 
-namespace memory_pool {
+namespace memory_pool_v2 {
 } // memory_pool

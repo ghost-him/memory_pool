@@ -13,9 +13,11 @@
 #include <cstring> // For memset
 #include <limits>  // For numeric_limits
 
+
+
 // Helper function to get aligned size, mimicking internal behavior for deallocation
 size_t get_aligned_size(size_t size) {
-    return memory_pool::size_utils::align(size);
+    return memory_pool_v2::size_utils::align(size);
 }
 
 // === Basic Allocation and Deallocation Tests ===
@@ -24,7 +26,7 @@ TEST(MemoryPoolTest, AllocateZeroSize) {
     // 根据需求，分配0字节应返回std::nullopt
     size_t requested_size = 0;
 
-    auto ptr_opt = memory_pool::memory_pool::allocate(requested_size);
+    auto ptr_opt = memory_pool_v2::memory_pool::allocate(requested_size);
 
     // 断言分配失败（返回nullopt）
     ASSERT_FALSE(ptr_opt.has_value()) << "分配0字节大小意外成功。";
@@ -34,10 +36,10 @@ TEST(MemoryPoolTest, AllocateZeroSize) {
 
 TEST(MemoryPoolTest, AllocateMinimumAlignedSize) {
     // 分配最小的正对齐内存块
-    size_t size = memory_pool::size_utils::ALIGNMENT; // 例如8字节
+    size_t size = memory_pool_v2::size_utils::ALIGNMENT; // 例如8字节
     ASSERT_GT(size, 0); // 确保对齐大小不为0
 
-    auto ptr_opt = memory_pool::memory_pool::allocate(size);
+    auto ptr_opt = memory_pool_v2::memory_pool::allocate(size);
     ASSERT_TRUE(ptr_opt.has_value()) << "最小对齐大小（" << size << "）分配失败。";
     void* ptr = ptr_opt.value();
     ASSERT_NE(ptr, nullptr);
@@ -48,16 +50,16 @@ TEST(MemoryPoolTest, AllocateMinimumAlignedSize) {
     ASSERT_EQ(static_cast<unsigned char*>(ptr)[0], 0xAA);
     ASSERT_EQ(static_cast<unsigned char*>(ptr)[size - 1], 0xAA);
 
-    memory_pool::memory_pool::deallocate(ptr, size);
+    memory_pool_v2::memory_pool::deallocate(ptr, size);
 }
 
 TEST(MemoryPoolTest, AllocateSmallSizeWithinCache) {
     // Allocate a size that should be handled by thread_cache free lists
     size_t size = 32;
-    ASSERT_LE(size, memory_pool::size_utils::MAX_CACHED_UNIT_SIZE);
-    ASSERT_EQ(size % memory_pool::size_utils::ALIGNMENT, 0); // Ensure it's aligned
+    ASSERT_LE(size, memory_pool_v2::size_utils::MAX_CACHED_UNIT_SIZE);
+    ASSERT_EQ(size % memory_pool_v2::size_utils::ALIGNMENT, 0); // Ensure it's aligned
 
-    auto ptr_opt = memory_pool::memory_pool::allocate(size);
+    auto ptr_opt = memory_pool_v2::memory_pool::allocate(size);
     ASSERT_TRUE(ptr_opt.has_value());
     void* ptr = ptr_opt.value();
     ASSERT_NE(ptr, nullptr);
@@ -65,15 +67,15 @@ TEST(MemoryPoolTest, AllocateSmallSizeWithinCache) {
     memset(ptr, 0xBB, size);
     ASSERT_EQ(static_cast<unsigned char*>(ptr)[size / 2], 0xBB);
 
-    memory_pool::memory_pool::deallocate(ptr, size);
+    memory_pool_v2::memory_pool::deallocate(ptr, size);
 }
 
 TEST(MemoryPoolTest, AllocateMaxSizeWithinCache) {
     // Allocate the largest size handled by the thread_cache free lists
-    size_t size = memory_pool::size_utils::MAX_CACHED_UNIT_SIZE; // e.g., 512 bytes
-    ASSERT_EQ(size % memory_pool::size_utils::ALIGNMENT, 0);
+    size_t size = memory_pool_v2::size_utils::MAX_CACHED_UNIT_SIZE; // e.g., 512 bytes
+    ASSERT_EQ(size % memory_pool_v2::size_utils::ALIGNMENT, 0);
 
-    auto ptr_opt = memory_pool::memory_pool::allocate(size);
+    auto ptr_opt = memory_pool_v2::memory_pool::allocate(size);
     ASSERT_TRUE(ptr_opt.has_value());
     void* ptr = ptr_opt.value();
     ASSERT_NE(ptr, nullptr);
@@ -81,15 +83,15 @@ TEST(MemoryPoolTest, AllocateMaxSizeWithinCache) {
     memset(ptr, 0xCC, size);
     ASSERT_EQ(static_cast<unsigned char*>(ptr)[size - 1], 0xCC);
 
-    memory_pool::memory_pool::deallocate(ptr, size);
+    memory_pool_v2::memory_pool::deallocate(ptr, size);
 }
 
 TEST(MemoryPoolTest, AllocateSlightlyLargerThanCache) {
     // Allocate a size just over the thread_cache limit, likely hitting central_cache directly
-    size_t size = memory_pool::size_utils::MAX_CACHED_UNIT_SIZE + memory_pool::size_utils::ALIGNMENT;
+    size_t size = memory_pool_v2::size_utils::MAX_CACHED_UNIT_SIZE + memory_pool_v2::size_utils::ALIGNMENT;
     size_t aligned_size = get_aligned_size(size); // Should be == size if ALIGNMENT divides MAX_CACHED_UNIT_SIZE
 
-    auto ptr_opt = memory_pool::memory_pool::allocate(size);
+    auto ptr_opt = memory_pool_v2::memory_pool::allocate(size);
     ASSERT_TRUE(ptr_opt.has_value());
     void* ptr = ptr_opt.value();
     ASSERT_NE(ptr, nullptr);
@@ -99,16 +101,16 @@ TEST(MemoryPoolTest, AllocateSlightlyLargerThanCache) {
     ASSERT_EQ(static_cast<unsigned char*>(ptr)[aligned_size - 1], 0xDD);
 
 
-    memory_pool::memory_pool::deallocate(ptr, aligned_size); // Deallocate with aligned size
+    memory_pool_v2::memory_pool::deallocate(ptr, aligned_size); // Deallocate with aligned size
 }
 
 TEST(MemoryPoolTest, AllocateLargeSize) {
     // Allocate a large block, likely hitting page_cache (multiple pages)
-    size_t size = memory_pool::size_utils::PAGE_SIZE * 4; // 16 KiB
+    size_t size = memory_pool_v2::size_utils::PAGE_SIZE * 4; // 16 KiB
     size_t aligned_size = get_aligned_size(size);
     ASSERT_EQ(aligned_size, size); // Should already be page aligned -> 8-byte aligned
 
-    auto ptr_opt = memory_pool::memory_pool::allocate(size);
+    auto ptr_opt = memory_pool_v2::memory_pool::allocate(size);
     ASSERT_TRUE(ptr_opt.has_value());
     void* ptr = ptr_opt.value();
     ASSERT_NE(ptr, nullptr);
@@ -116,7 +118,7 @@ TEST(MemoryPoolTest, AllocateLargeSize) {
     memset(ptr, 0xEE, size);
     ASSERT_EQ(static_cast<unsigned char*>(ptr)[size - 1], 0xEE);
 
-    memory_pool::memory_pool::deallocate(ptr, size);
+    memory_pool_v2::memory_pool::deallocate(ptr, size);
 }
 
 
@@ -128,7 +130,7 @@ TEST(MemoryPoolTest, AllocateUnalignedSize) {
     ASSERT_EQ(aligned_size, 24);
     ASSERT_NE(requested_size, aligned_size);
 
-    auto ptr_opt = memory_pool::memory_pool::allocate(requested_size);
+    auto ptr_opt = memory_pool_v2::memory_pool::allocate(requested_size);
     ASSERT_TRUE(ptr_opt.has_value());
     void* ptr = ptr_opt.value();
     ASSERT_NE(ptr, nullptr);
@@ -140,13 +142,13 @@ TEST(MemoryPoolTest, AllocateUnalignedSize) {
 
     // *** CRITICAL: Deallocate with the ALIGNED size ***
     // Based on internal code analysis, this seems necessary for correctness.
-    memory_pool::memory_pool::deallocate(ptr, aligned_size);
+    memory_pool_v2::memory_pool::deallocate(ptr, aligned_size);
 
     // Try allocating the aligned size again to potentially reuse the block
-    auto ptr2_opt = memory_pool::memory_pool::allocate(aligned_size);
+    auto ptr2_opt = memory_pool_v2::memory_pool::allocate(aligned_size);
     ASSERT_TRUE(ptr2_opt.has_value());
     ASSERT_NE(ptr2_opt.value(), nullptr);
-    memory_pool::memory_pool::deallocate(ptr2_opt.value(), aligned_size);
+    memory_pool_v2::memory_pool::deallocate(ptr2_opt.value(), aligned_size);
 }
 
 // === Multiple Allocation/Deallocation Tests ===
@@ -158,7 +160,7 @@ TEST(MemoryPoolTest, SequentialAllocDealloc) {
     pointers.reserve(num_allocs);
 
     for (size_t i = 0; i < num_allocs; ++i) {
-        auto ptr_opt = memory_pool::memory_pool::allocate(size);
+        auto ptr_opt = memory_pool_v2::memory_pool::allocate(size);
         ASSERT_TRUE(ptr_opt.has_value());
         ASSERT_NE(ptr_opt.value(), nullptr);
         pointers.push_back(ptr_opt.value());
@@ -168,7 +170,7 @@ TEST(MemoryPoolTest, SequentialAllocDealloc) {
     for (void* ptr : pointers) {
         // Simple check before deallocating
         ASSERT_NE(ptr, nullptr);
-        memory_pool::memory_pool::deallocate(ptr, size);
+        memory_pool_v2::memory_pool::deallocate(ptr, size);
     }
 }
 
@@ -183,11 +185,11 @@ TEST(MemoryPoolTest, InterleavedAllocDealloc) {
             // Deallocate
             auto back_pair = pointers.back();
             pointers.pop_back();
-            memory_pool::memory_pool::deallocate(back_pair.first, back_pair.second);
+            memory_pool_v2::memory_pool::deallocate(back_pair.first, back_pair.second);
         } else {
             // Allocate
             size_t current_size = (i % 2 == 0) ? size1 : size2;
-            auto ptr_opt = memory_pool::memory_pool::allocate(current_size);
+            auto ptr_opt = memory_pool_v2::memory_pool::allocate(current_size);
             ASSERT_TRUE(ptr_opt.has_value());
             ASSERT_NE(ptr_opt.value(), nullptr);
             memset(ptr_opt.value(), static_cast<int>(i % 256), current_size);
@@ -197,7 +199,7 @@ TEST(MemoryPoolTest, InterleavedAllocDealloc) {
 
     // Deallocate remaining pointers
     for (const auto& pair : pointers) {
-        memory_pool::memory_pool::deallocate(pair.first, pair.second);
+        memory_pool_v2::memory_pool::deallocate(pair.first, pair.second);
     }
 }
 
@@ -208,7 +210,7 @@ TEST(MemoryPoolTest, NoOverlap) {
     std::map<void*, size_t> allocated_ranges; // Store ptr -> end_addr
 
     for (size_t i = 0; i < num_allocs; ++i) {
-        auto ptr_opt = memory_pool::memory_pool::allocate(size);
+        auto ptr_opt = memory_pool_v2::memory_pool::allocate(size);
         ASSERT_TRUE(ptr_opt.has_value());
         void* ptr = ptr_opt.value();
         ASSERT_NE(ptr, nullptr);
@@ -236,7 +238,7 @@ TEST(MemoryPoolTest, NoOverlap) {
 
     // Deallocate all
     for (void* ptr : allocated_pointers) {
-        memory_pool::memory_pool::deallocate(ptr, size);
+        memory_pool_v2::memory_pool::deallocate(ptr, size);
     }
 }
 
@@ -251,10 +253,10 @@ void AllocDeallocTask(size_t num_allocs, size_t base_alloc_size, std::atomic<boo
 
     for (size_t i = 0; i < num_allocs; ++i) {
         // Vary size slightly per allocation to hit different small bins potentially
-        size_t requested_size = base_alloc_size + (i % 5) * memory_pool::size_utils::ALIGNMENT;
+        size_t requested_size = base_alloc_size + (i % 5) * memory_pool_v2::size_utils::ALIGNMENT;
         size_t aligned_size = get_aligned_size(requested_size);
 
-        auto ptr_opt = memory_pool::memory_pool::allocate(requested_size);
+        auto ptr_opt = memory_pool_v2::memory_pool::allocate(requested_size);
         if (!ptr_opt.has_value() || ptr_opt.value() == nullptr) {
              // Allocation failure is possible under stress, but shouldn't happen easily
              // in this test unless system is under heavy load. Mark as failure for strictness.
@@ -280,7 +282,7 @@ void AllocDeallocTask(size_t num_allocs, size_t base_alloc_size, std::atomic<boo
 
     // Deallocate all pointers allocated by this thread
     for (const auto& pair : pointers) {
-        memory_pool::memory_pool::deallocate(pair.first, pair.second); // Use the stored aligned size
+        memory_pool_v2::memory_pool::deallocate(pair.first, pair.second); // Use the stored aligned size
     }
 
     if (!local_success) {
@@ -330,7 +332,7 @@ struct CrossThreadData {
 
 void AllocatorThread(CrossThreadData& data) {
     try {
-        auto ptr_opt = memory_pool::memory_pool::allocate(data.requested_size);
+        auto ptr_opt = memory_pool_v2::memory_pool::allocate(data.requested_size);
         if (ptr_opt.has_value() && ptr_opt.value() != nullptr) {
             memset(ptr_opt.value(), 0xAB, data.aligned_size);
             data.ptr_promise.set_value(ptr_opt.value());
@@ -355,7 +357,7 @@ void DeallocatorThread(CrossThreadData& data) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
         // Perform deallocation using the aligned size
-        memory_pool::memory_pool::deallocate(ptr, data.aligned_size);
+        memory_pool_v2::memory_pool::deallocate(ptr, data.aligned_size);
 
     } catch (const std::exception& e) {
          fprintf(stderr, "DeallocatorThread: Exception caught: %s\n", e.what());
@@ -392,11 +394,11 @@ TEST(MemoryPoolTest, HighFrequencyAllocDealloc) {
     const size_t size = 16; // Small size, likely stays in thread cache
 
     for (size_t i = 0; i < num_ops; ++i) {
-        auto ptr_opt = memory_pool::memory_pool::allocate(size);
+        auto ptr_opt = memory_pool_v2::memory_pool::allocate(size);
         ASSERT_TRUE(ptr_opt.has_value());
         ASSERT_NE(ptr_opt.value(), nullptr);
         // No memset needed, just testing alloc/dealloc path
-        memory_pool::memory_pool::deallocate(ptr_opt.value(), size);
+        memory_pool_v2::memory_pool::deallocate(ptr_opt.value(), size);
     }
 }
 
@@ -415,11 +417,11 @@ TEST(MemoryPoolTest, VaryingSizesStress) {
             // Swap-and-pop for efficiency
             std::swap(pointers[idx_to_remove], pointers.back());
             pointers.pop_back();
-            memory_pool::memory_pool::deallocate(item.first, item.second); // Use stored aligned size
+            memory_pool_v2::memory_pool::deallocate(item.first, item.second); // Use stored aligned size
          } else { // Allocate mostly
             size_t requested_size = sizes[std::rand() % num_sizes];
             size_t aligned_size = get_aligned_size(requested_size);
-            auto ptr_opt = memory_pool::memory_pool::allocate(requested_size);
+            auto ptr_opt = memory_pool_v2::memory_pool::allocate(requested_size);
              if (ptr_opt.has_value() && ptr_opt.value() != nullptr) {
                  memset(ptr_opt.value(), 0xFE, aligned_size); // Use aligned size for memset
                  pointers.push_back({ptr_opt.value(), aligned_size}); // Store aligned size
@@ -435,7 +437,7 @@ TEST(MemoryPoolTest, VaryingSizesStress) {
 
     // Cleanup remaining
     for(const auto& item : pointers) {
-        memory_pool::memory_pool::deallocate(item.first, item.second);
+        memory_pool_v2::memory_pool::deallocate(item.first, item.second);
     }
      // Test primarily checks for crashes/deadlocks/asserts during the stress period.
 }
@@ -446,7 +448,7 @@ TEST(MemoryPoolTest, AllocationFailure) {
     // Using size_t max / 2 is a common way to request an unreasonably large block.
     size_t huge_size = std::numeric_limits<size_t>::max() / 2;
 
-    auto ptr_opt = memory_pool::memory_pool::allocate(huge_size);
+    auto ptr_opt = memory_pool_v2::memory_pool::allocate(huge_size);
 
     // We expect this allocation to fail and return nullopt
     ASSERT_FALSE(ptr_opt.has_value()) << "Allocation of extremely large size (" << huge_size << ") unexpectedly succeeded.";

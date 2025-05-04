@@ -12,9 +12,9 @@
 #include <thread>
 
 #include "page_cache.h"
-#include "../memory_pool/thread_cache.h"
+#include "thread_cache.h"
 
-namespace memory_pool {
+namespace memory_pool_v2 {
     std::optional<std::byte*> central_cache::allocate(const size_t memory_size, const size_t block_count) {
         // 内存的传入应该一定是8的倍数
         assert(memory_size % 8 == 0);
