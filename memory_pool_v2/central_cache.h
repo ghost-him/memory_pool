@@ -21,7 +21,7 @@ namespace memory_pool_v2 {
     // 中心存储器
     class central_cache {
     public:
-        friend class CentralCacheTest;
+        friend class ::CentralCacheTest;
         // 一次性申请8页的空间
         static constexpr size_t PAGE_SPAN = 8;
         static central_cache& get_instance() {

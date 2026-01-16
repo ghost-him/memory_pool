@@ -12,10 +12,14 @@
 #include <span>
 #include <unordered_map>
 
+class ThreadCacheTest;
+
 namespace memory_pool_v2 {
+class thread_cache;
 
 class thread_cache {
 public:
+    friend class ::ThreadCacheTest;
     /// 设置每个列表缓存的上限为256KB（对于16KB的对象即为缓存 256KB / 16KB = 16个）
     /// 这个阈值的设置需要分析，如果常用的分配的量比较少
     /// 比如只申请几个固定大小的空间，则这个值可以设置的大一些

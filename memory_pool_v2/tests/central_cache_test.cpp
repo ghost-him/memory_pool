@@ -107,6 +107,11 @@ protected:
         nodes.clear(); // 清空 vector 表示概念上的释放
     }
 
+    // Helpers to access private members of central_cache (friend class CentralCacheTest)
+    auto& get_page_map(size_t index) { return cache.m_page_set[index]; }
+    std::byte* get_free_list_head(size_t index) { return cache.m_free_array[index]; }
+    size_t get_free_list_size(size_t index) { return cache.m_free_array_size[index]; }
+
     // *** 修改点：将并发任务函数移入 Fixture 并设为 static ***
     // 静态成员函数，用于在单独的线程中执行分配/释放操作
     // 注意：静态成员函数没有 this 指针，需要重新获取单例实例
@@ -470,7 +475,7 @@ TEST_F(CentralCacheTest, DeallocateFreesPageInternalCheck) {
     page_span* managed_span_ptr = nullptr;
 
     { // 作用域用于查找 span
-        auto& page_map = cache.m_page_set[index]; // 访问私有成员
+        auto& page_map = get_page_map(index); // 使用 Fixture 助手访问私有成员
         auto it_map = page_map.upper_bound(first_block);
         ASSERT_NE(it_map, page_map.begin()) << "Could not find managing page_span for allocated block " << (void*)first_block << " in m_page_set[" << index << "]";
         --it_map;
@@ -521,14 +526,14 @@ TEST_F(CentralCacheTest, DeallocateFreesPageInternalCheck) {
     // (验证逻辑与之前相同)
     // 5a. 检查 m_page_set
     {
-        ASSERT_EQ(cache.m_page_set[index].count(page_start_addr), 0)
+        ASSERT_EQ(get_page_map(index).count(page_start_addr), 0)
             << "Page span starting at " << (void*)page_start_addr
             << " was *not* removed from m_page_set[" << index << "] after all its blocks were deallocated.";
     }
 
     // 5b. 检查 m_free_array
     {
-        std::byte* current_free = cache.m_free_array[index];
+        std::byte* current_free = get_free_list_head(index);
         std::byte* page_end_addr = page_start_addr + page_original_size;
         size_t blocks_found_from_freed_page = 0;
         std::set<std::byte*> visited_free;
@@ -550,7 +555,7 @@ TEST_F(CentralCacheTest, DeallocateFreesPageInternalCheck) {
             << blocks_found_from_freed_page << " block(s) belonging to the freed page span were found in the central cache's free list.";
 
         // 5c. 检查 m_free_array_size
-        size_t reported_free_size = cache.m_free_array_size[index];
+        size_t reported_free_size = get_free_list_size(index);
         size_t actual_free_count = visited_free.size();
         ASSERT_EQ(reported_free_size, actual_free_count)
             << "m_free_array_size[" << index << "] (" << reported_free_size

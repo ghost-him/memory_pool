@@ -57,4 +57,8 @@ target_link_libraries(memory_pool_test_v2 PRIVATE
 
 # Discover tests using CTest
 include(GoogleTest)
-gtest_discover_tests(page_cache_test_v2 page_span_test_v2 central_cache_test_v2 memory_pool_test_v2)
+gtest_discover_tests(page_cache_test_v2)
+gtest_discover_tests(page_span_test_v2)
+gtest_discover_tests(central_cache_test_v2)
+gtest_discover_tests(memory_pool_test_v2)
+gtest_discover_tests(thread_cache_test_v2)
