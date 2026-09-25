@@ -5,6 +5,7 @@
 #include <memory>             // 用于 unique_ptr (可选，但推荐)
 #include <numeric>            // 用于 std::iota (可选，用于填充测试数据)
 #include <cstddef>            // size_t, byte
+#include <new>                // placement new
 
 using namespace memory_pool_v2;
 
@@ -213,6 +214,42 @@ TEST_F(PageSpanTest, ComparisonOperator) {
     // 与自身的比较应该是相等的
     EXPECT_TRUE((page1 <=> page1) == 0);
     EXPECT_TRUE((page2 <=> page2) == 0);
+}
+
+// 回归测试：Release 模式下 page_span 用计数器（而不是 bitset）记录已分配单元数，
+// 计数器必须由构造函数置 0，否则 is_empty() 读到的是上一份残留/未初始化的值。
+// 做法：在同一块存储上先构造一个 page_span 并把它的计数"用脏"（所有单元都处于已分配状态），
+// 析构不会清理这块存储；随后在同一位置重新构造，新的 page_span 必须重新从"空"开始。
+// （不要用 memset 注入脏值：placement new 之前的那次写入会被优化器当作死代码删掉。）
+TEST(PageSpanRegression, FreshSpanStartsEmptyOnReusedStorage) {
+    constexpr size_t unit_size = 64;
+    constexpr size_t unit_count = 16;
+
+    alignas(page_span) std::byte storage[sizeof(page_span)];
+    std::byte buffer[unit_size * unit_count];
+
+    auto* first = new (storage) page_span(memory_span{buffer, sizeof(buffer)}, unit_size);
+    for (size_t i = 0; i < unit_count; ++i) {
+        first->allocate(memory_span{buffer + i * unit_size, unit_size});
+    }
+    ASSERT_FALSE(first->is_empty()); // 16 个单元全部处于已分配状态
+    first->~page_span();
+
+    auto* second = new (storage) page_span(memory_span{buffer, sizeof(buffer)}, unit_size);
+    EXPECT_TRUE(second->is_empty()); // 构造函数必须把计数归零
+
+    for (size_t i = 0; i < unit_count; ++i) {
+        second->allocate(memory_span{buffer + i * unit_size, unit_size});
+    }
+    EXPECT_FALSE(second->is_empty());
+    for (size_t i = 0; i + 1 < unit_count; ++i) {
+        second->deallocate(memory_span{buffer + i * unit_size, unit_size});
+        EXPECT_FALSE(second->is_empty()); // 还剩一个单元没有归还
+    }
+    second->deallocate(memory_span{buffer + (unit_count - 1) * unit_size, unit_size});
+    EXPECT_TRUE(second->is_empty());
+
+    second->~page_span();
 }
 
 // 你可以根据需要添加更多测试，例如：

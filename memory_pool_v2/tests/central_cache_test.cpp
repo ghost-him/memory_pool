@@ -19,6 +19,11 @@
 
 using namespace memory_pool_v2;
 
+// Debug 模式下 page_span 用 bitset 追踪单元，一个页面最多 PAGE_SIZE / ALIGNMENT 个单元；
+// Release 模式下 page_span 改用计数器，没有这个上限。测试规模统一保持在该值以下，
+// 这样同一套用例在两种模式下都能编译、都能成立。
+constexpr size_t MAX_UNITS_PER_SPAN = size_utils::PAGE_SIZE / size_utils::ALIGNMENT;
+
 // --- Helper Functions (来自原始代码) ---
 // Helper to count nodes in the intrusive list
 size_t list_length(std::byte* head) {
@@ -331,7 +336,7 @@ TEST_F(CentralCacheTest, ForcePageCacheFetch) {
 
     // 确定一个数量，小于 MAX_UNIT_COUNT，用于填充空闲列表
     const size_t initial_free_count = 300;
-    ASSERT_LT(initial_free_count, page_span::MAX_UNIT_COUNT) << "Initial count must be less than MAX_UNIT_COUNT";
+    ASSERT_LT(initial_free_count, MAX_UNITS_PER_SPAN) << "Initial count must be less than MAX_UNIT_COUNT";
     ASSERT_GT(initial_free_count, 0);
 
     // 1. 分配第一批块，用于之后填充空闲列表
@@ -352,7 +357,7 @@ TEST_F(CentralCacheTest, ForcePageCacheFetch) {
     const size_t blocks_to_request = 400; // 需要的数量 > initial_free_count
     const size_t extra_needed = blocks_to_request - initial_free_count; // 需要从 fetch 获取的数量
     ASSERT_GT(blocks_to_request, initial_free_count) << "Request count must be greater than initial free count to force fetch";
-    ASSERT_LT(blocks_to_request, page_span::MAX_UNIT_COUNT) << "Request count must be less than MAX_UNIT_COUNT due to new constraint";
+    ASSERT_LT(blocks_to_request, MAX_UNITS_PER_SPAN) << "Request count must be less than MAX_UNIT_COUNT due to new constraint";
     ASSERT_GT(extra_needed, 0);
 
     auto result2 = allocate_and_check(alloc_size, blocks_to_request);
@@ -393,8 +398,8 @@ TEST_F(CentralCacheTest, DeallocateFreesPageIndirect) {
     ASSERT_EQ(alloc_size % size_utils::ALIGNMENT, 0);
 
     // 分配一个小于 MAX_UNIT_COUNT 的数量
-    const size_t alloc_count1 = 300; // 或者 page_span::MAX_UNIT_COUNT / 2 等
-    ASSERT_LT(alloc_count1, page_span::MAX_UNIT_COUNT) << "Allocation count must be less than MAX_UNIT_COUNT";
+    const size_t alloc_count1 = 300; // 或者 MAX_UNITS_PER_SPAN / 2 等
+    ASSERT_LT(alloc_count1, MAX_UNITS_PER_SPAN) << "Allocation count must be less than MAX_UNIT_COUNT";
     ASSERT_GT(alloc_count1, 0);
 
     // 1. 分配第一批块
@@ -439,7 +444,7 @@ TEST_F(CentralCacheTest, DeallocateFreesPageInternalCheck) {
     ASSERT_GT(alloc_size, 0);
     ASSERT_EQ(alloc_size % size_utils::ALIGNMENT, 0);
     const size_t index = size_utils::get_index(alloc_size);
-    const size_t units_in_span = page_span::MAX_UNIT_COUNT; // 通常是 512
+    const size_t units_in_span = MAX_UNITS_PER_SPAN; // 通常是 512
     ASSERT_GT(units_in_span, 0);
 
     // --- 步骤 0: 尝试清理状态 (可选) ---

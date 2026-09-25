@@ -139,7 +139,12 @@ namespace memory_pool_v2 {
     public:
         /// 初始化这个page_span
         /// 参数：span:这个page_span管理的空间，unit_size
-        page_span(const memory_span span, const size_t unit_size): m_memory(span), m_unit_size(unit_size) { };
+        /// 注意：两个计数器必须在这里初始化，is_empty() 与 allocate/deallocate 都依赖它们
+        page_span(const memory_span span, const size_t unit_size)
+            : m_memory(span),
+              m_unit_size(unit_size),
+              m_total_unit_count(span.size() / unit_size),
+              m_allocated_unit_count(0) { }
 
         // 根据内存地址的起始位置进行相比
         auto operator<=>(const page_span& other) const {
